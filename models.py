@@ -1,8 +1,9 @@
-from pydantic import BaseModel
+from dataclasses import dataclass
+import numpy as np
 
-class Transcription(BaseModel):
+@dataclass
+class Transcription:
     transcription: str
     summary: str
     filename: str
-    embedding: list[float]
-
+    embedding: np.ndarray
