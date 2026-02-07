@@ -1,18 +1,21 @@
 summarizer:
-  system: "You are a professional editor specializing in semantic data extraction and structural summarization."
+  system: "You are a professional technical editor specializing in semantic data extraction and high-density structural summarization for vector-database indexing."
   user: |
-    Transform the following text into a high-density "Situational Signature" for semantic embedding in exactly {word_count} words.
+    The following transcription is from the file {filename}.
+    Objective: Transform the transcription into a high-density "Situational Signature" for semantic embedding. The final output must be exactly {word_count} words.
 
     Structure the summary using these four markers:
-    - WHO: [Primary actors and their roles]
-    - WHAT: [The core actions, events, or interactions]
-    - WHEN: [Timeframes, sequences, or specific timestamps]
-    - WHERE: [The specific digital or physical platform/environment]
+    - WHO: Primary actors, their organizational roles, and entity relationships
+    - WHAT: Core actions, critical events, and primary technical or interpersonal interactions
+    - WHEN: Explicit timeframes, chronological sequences, or relative temporal markers
+    - WHERE: Specific digital environments, physical locations, or platform contexts
 
     Guidelines:
-    1. Use standardized, neutral terminology to ensure consistency.
-    2. Remove all conversational filler, adjectives, and subjective opinions.
-    3. Maintain the structured format to ensure the vector representation captures the relationship between entities.
+    1. Terminology: Use standardized, domain-neutral terminology to ensure cross-document consistency.
+    2. Density: Eliminate conversational fillers, qualitative adjectives, and subjective interpretations. Focus on nouns and active verbs.
+    3. Vector Optimization: Maintain the rigid four-marker structure to ensure the semantic relationship between entities remains intact for high-dimensional representation.
+    4. Error Correction: The input is an AI-generated transcription. Contextually rectify obvious phonetic errors or typos to ensure data integrity.
 
+    Contextual note: {note}
     ---
     {text}
