@@ -91,7 +91,10 @@ def main():
             # Generate Summary using the specified prompt
             # We'll use a word_count of 50 as a default for the template
             prompt_user = summarizer_prompt.user.format(
-                word_count=50, text=transcription_text
+                filename=json_file.name,
+                word_count=75,
+                text=transcription_text,
+                note="It's a transcription of a video replay where me and my friend play a video game. The filename has the name of the game.",
             )
 
             response = client.models.generate_content(
