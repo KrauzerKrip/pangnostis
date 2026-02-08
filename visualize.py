@@ -34,15 +34,21 @@ def plot_embeddings(embeddings, filenames, title, output_path):
 
     # Plotting
     plt.figure(figsize=(12, 8))
-    colors = plt.colormaps["tab10"](np.linspace(0, 1, len(filenames)))
+    # Use nipy_spectral for better color variety when dealing with many files
+    colors = plt.colormaps["nipy_spectral"](np.linspace(0, 1, len(filenames)))
+    
+    # List of marker styles to cycle through
+    markers = ['o', 's', '^', 'v', '<', '>', 'D', 'p', '*', 'h', 'X', '8']
 
     for i, filename in enumerate(filenames):
         plt.scatter(
             embeddings_2d[i, 0],
             embeddings_2d[i, 1],
             color=colors[i],
+            marker=markers[i % len(markers)],
             label=filename,
             s=100,
+            alpha=0.8
         )
 
     plt.title(title)
@@ -72,7 +78,6 @@ def main():
     embedding_map = {
         "who": "who_embedding",
         "what": "what_embedding",
-        "when": "when_embedding",
         "where": "where_embedding",
         "context": "context_embedding"
     }

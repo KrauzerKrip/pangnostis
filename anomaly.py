@@ -40,7 +40,6 @@ def main():
     embedding_map = {
         "who": "who_embedding",
         "what": "what_embedding",
-        "when": "when_embedding",
         "where": "where_embedding",
         "context": "context_embedding"
     }

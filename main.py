@@ -19,7 +19,6 @@ from repository import TranscriptionRepository
 class StructuredSummary(BaseModel):
     who: str
     what: str
-    when: str
     where: str
     context_vector_helper: str
 
@@ -46,7 +45,7 @@ def get_transcription_text(json_path: Path, include_time: bool = False) -> str:
     try:
         with open(json_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        
+
         prefix = ""
         if include_time:
             dt = extract_datetime(json_path.name)
@@ -61,8 +60,14 @@ def get_transcription_text(json_path: Path, include_time: bool = False) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Process transcriptions and generate summaries.")
-    parser.add_argument("--merge", action="store_true", help="Merge transcriptions recorded within 1 minute of each other.")
+    parser = argparse.ArgumentParser(
+        description="Process transcriptions and generate summaries."
+    )
+    parser.add_argument(
+        "--merge",
+        action="store_true",
+        help="Merge transcriptions recorded within 1 minute of each other.",
+    )
     args = parser.parse_args()
 
     # Load environment variables from .env
@@ -75,7 +80,7 @@ def main():
 
     # Initialize Gemini client
     client = genai.Client(api_key=api_key)
-    
+
     # Initialize repository
     repo = TranscriptionRepository()
 
@@ -113,14 +118,14 @@ def main():
             else:
                 # If no datetime found, treat as standalone task
                 tasks.append([f])
-        
+
         # Sort by datetime
         file_datetimes.sort(key=lambda x: x[1])
-        
+
         if file_datetimes:
             current_group = [file_datetimes[0][0]]
             last_dt = file_datetimes[0][1]
-            
+
             for i in range(1, len(file_datetimes)):
                 f, dt = file_datetimes[i]
                 if dt - last_dt <= timedelta(minutes=1):
@@ -136,16 +141,18 @@ def main():
 
     for task_files in tasks:
         task_filename = ";".join([f.name for f in task_files])
-        display_name = task_files[0].name if len(task_files) == 1 else f"Merged ({len(task_files)} files)"
-        
+        display_name = (
+            task_files[0].name
+            if len(task_files) == 1
+            else f"Merged ({len(task_files)} files)"
+        )
+
         print(f"--- Processing {display_name} ---")
 
         # Check if already processed to avoid redundant API calls
         existing = repo.get_by_filename(task_filename)
         if existing:
-            print(
-                f"Skipping {display_name}, already in database (ID: {existing.id})."
-            )
+            print(f"Skipping {display_name}, already in database (ID: {existing.id}).")
             continue
 
         # Combine transcriptions
@@ -154,9 +161,9 @@ def main():
             part = get_transcription_text(f, include_time=args.merge)
             if part:
                 transcription_parts.append(part)
-        
+
         transcription_text = "\n\n".join(transcription_parts)
-        
+
         if not transcription_text:
             print(f"No transcription text found for {display_name}")
             continue
@@ -194,8 +201,8 @@ def main():
                 print(f"Raw response: {response.text}")
                 continue
 
-            # Fields: who, what, when, where, context_vector_helper
-            fields = ["who", "what", "when", "where", "context_vector_helper"]
+            # Fields: who, what, where, context_vector_helper
+            fields = ["who", "what", "where", "context_vector_helper"]
             embeddings = {}
 
             print(f"Generating embeddings for {display_name}...")
@@ -218,13 +225,11 @@ def main():
                 transcription=transcription_text,
                 who=structured_data.get("who", ""),
                 what=structured_data.get("what", ""),
-                when=structured_data.get("when", ""),
                 where=structured_data.get("where", ""),
                 context_vector_helper=structured_data.get("context_vector_helper", ""),
                 filename=task_filename,
                 who_embedding=embeddings["who"],
                 what_embedding=embeddings["what"],
-                when_embedding=embeddings["when"],
                 where_embedding=embeddings["where"],
                 context_embedding=embeddings["context_vector_helper"],
             )
