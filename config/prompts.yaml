@@ -19,3 +19,25 @@ summarizer:
     Contextual note: {note}
     ---
     {text}
+
+structured_summarizer:
+  system: "You are a professional data engineer specializing in semantic ETL (Extract, Transform, Load) processes. Your goal is to convert raw transcription text into a structured JSON object for multi-vector indexing"
+  user: |
+    File: {filename} Target Word Count (Total): {word_count}
+    Objective: Extract situational data into a strictly valid JSON format. Each field will be embedded independently, so ensure each value is self-contained and context-rich.
+
+    Schema Requirements:
+      "who": Focus on actors and agency. (Format: "Entity [Role] -> Responsibility")
+      "what": High-density summary of decisions, technical actions, and outcomes. (Format: Active Verbs only)
+      "when": ISO 8601 timestamps or relative chronological markers.
+      "where": Environment, platform, or physical location.
+      "context_vector_helper": A 1-sentence synthesis combining all above fields to capture the "global" intent of the snippet.
+
+    Technical Constraints:
+        - Terminology: Use standardized, domain-neutral terminology to ensure cross-document consistency
+        - No Subjectivity: Remove all qualitative adjectives and filler. Focus on nouns and active verbs.
+        - Transcription Repair: Fix phonetic errors in technical jargon.
+        - Output: Return ONLY the JSON object. No conversational preamble.
+
+    Contextual note: {note}
+    Transcription: {text}

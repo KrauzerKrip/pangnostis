@@ -24,47 +24,88 @@ class TranscriptionRepository:
         
         with self._get_connection() as conn:
             cursor = conn.cursor()
+            # Check if table exists and has old schema
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='transcriptions'")
+            if cursor.fetchone():
+                cursor.execute("PRAGMA table_info(transcriptions)")
+                columns = [row[1] for row in cursor.fetchall()]
+                if 'summary' in columns:
+                    cursor.execute("DROP TABLE transcriptions")
+
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS transcriptions (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     filename TEXT UNIQUE NOT NULL,
                     transcription TEXT NOT NULL,
-                    summary TEXT NOT NULL,
-                    embedding BLOB NOT NULL
+                    who TEXT NOT NULL,
+                    what TEXT NOT NULL,
+                    "when" TEXT NOT NULL,
+                    "where" TEXT NOT NULL,
+                    context_vector_helper TEXT NOT NULL,
+                    who_embedding BLOB NOT NULL,
+                    what_embedding BLOB NOT NULL,
+                    when_embedding BLOB NOT NULL,
+                    where_embedding BLOB NOT NULL,
+                    context_embedding BLOB NOT NULL
                 )
             """)
             conn.commit()
 
     def save(self, transcription: Transcription):
         """Save a transcription to the database."""
-        # Ensure embedding is float32 and in native byte order (or little-endian as required by sqlite-vec)
-        # sqlite-vec expects little-endian float32. 
-        # numpy.ndarray.tobytes() uses system byte order. 
-        # To be safe and explicit:
-        embedding_blob = transcription.embedding.astype('<f4').tobytes()
+        # Ensure embeddings are float32 and in little-endian as required by sqlite-vec
+        who_emb = transcription.who_embedding.astype('<f4').tobytes()
+        what_emb = transcription.what_embedding.astype('<f4').tobytes()
+        when_emb = transcription.when_embedding.astype('<f4').tobytes()
+        where_emb = transcription.where_embedding.astype('<f4').tobytes()
+        context_emb = transcription.context_embedding.astype('<f4').tobytes()
         
         with self._get_connection() as conn:
             cursor = conn.cursor()
             if transcription.id is not None:
                 cursor.execute("""
-                    INSERT OR REPLACE INTO transcriptions (id, filename, transcription, summary, embedding)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT OR REPLACE INTO transcriptions (
+                        id, filename, transcription, who, what, "when", "where", 
+                        context_vector_helper, who_embedding, what_embedding, 
+                        when_embedding, where_embedding, context_embedding
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     transcription.id,
                     transcription.filename,
                     transcription.transcription,
-                    transcription.summary,
-                    embedding_blob
+                    transcription.who,
+                    transcription.what,
+                    transcription.when,
+                    transcription.where,
+                    transcription.context_vector_helper,
+                    who_emb,
+                    what_emb,
+                    when_emb,
+                    where_emb,
+                    context_emb
                 ))
             else:
                 cursor.execute("""
-                    INSERT OR REPLACE INTO transcriptions (filename, transcription, summary, embedding)
-                    VALUES (?, ?, ?, ?)
+                    INSERT OR REPLACE INTO transcriptions (
+                        filename, transcription, who, what, "when", "where", 
+                        context_vector_helper, who_embedding, what_embedding, 
+                        when_embedding, where_embedding, context_embedding
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     transcription.filename,
                     transcription.transcription,
-                    transcription.summary,
-                    embedding_blob
+                    transcription.who,
+                    transcription.what,
+                    transcription.when,
+                    transcription.where,
+                    transcription.context_vector_helper,
+                    who_emb,
+                    what_emb,
+                    when_emb,
+                    where_emb,
+                    context_emb
                 ))
                 transcription.id = cursor.lastrowid
             conn.commit()
@@ -73,7 +114,12 @@ class TranscriptionRepository:
         """Retrieve a transcription by filename."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT id, filename, transcription, summary, embedding FROM transcriptions WHERE filename = ?", (filename,))
+            cursor.execute("""
+                SELECT id, filename, transcription, who, what, "when", "where", 
+                       context_vector_helper, who_embedding, what_embedding, 
+                       when_embedding, where_embedding, context_embedding 
+                FROM transcriptions WHERE filename = ?
+            """, (filename,))
             row = cursor.fetchone()
             
             if row:
@@ -81,8 +127,16 @@ class TranscriptionRepository:
                     id=row[0],
                     filename=row[1],
                     transcription=row[2],
-                    summary=row[3],
-                    embedding=np.frombuffer(row[4], dtype='<f4')
+                    who=row[3],
+                    what=row[4],
+                    when=row[5],
+                    where=row[6],
+                    context_vector_helper=row[7],
+                    who_embedding=np.frombuffer(row[8], dtype='<f4'),
+                    what_embedding=np.frombuffer(row[9], dtype='<f4'),
+                    when_embedding=np.frombuffer(row[10], dtype='<f4'),
+                    where_embedding=np.frombuffer(row[11], dtype='<f4'),
+                    context_embedding=np.frombuffer(row[12], dtype='<f4')
                 )
             return None
 
@@ -90,7 +144,12 @@ class TranscriptionRepository:
         """Retrieve all transcriptions."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT id, filename, transcription, summary, embedding FROM transcriptions")
+            cursor.execute("""
+                SELECT id, filename, transcription, who, what, "when", "where", 
+                       context_vector_helper, who_embedding, what_embedding, 
+                       when_embedding, where_embedding, context_embedding 
+                FROM transcriptions
+            """)
             rows = cursor.fetchall()
             
             return [
@@ -98,8 +157,16 @@ class TranscriptionRepository:
                     id=row[0],
                     filename=row[1],
                     transcription=row[2],
-                    summary=row[3],
-                    embedding=np.frombuffer(row[4], dtype='<f4')
+                    who=row[3],
+                    what=row[4],
+                    when=row[5],
+                    where=row[6],
+                    context_vector_helper=row[7],
+                    who_embedding=np.frombuffer(row[8], dtype='<f4'),
+                    what_embedding=np.frombuffer(row[9], dtype='<f4'),
+                    when_embedding=np.frombuffer(row[10], dtype='<f4'),
+                    where_embedding=np.frombuffer(row[11], dtype='<f4'),
+                    context_embedding=np.frombuffer(row[12], dtype='<f4')
                 )
                 for row in rows
             ]
@@ -108,7 +175,12 @@ class TranscriptionRepository:
         """Retrieve a transcription by id."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT id, filename, transcription, summary, embedding FROM transcriptions WHERE id = ?", (id,))
+            cursor.execute("""
+                SELECT id, filename, transcription, who, what, "when", "where", 
+                       context_vector_helper, who_embedding, what_embedding, 
+                       when_embedding, where_embedding, context_embedding 
+                FROM transcriptions WHERE id = ?
+            """, (id,))
             row = cursor.fetchone()
             
             if row:
@@ -116,7 +188,15 @@ class TranscriptionRepository:
                     id=row[0],
                     filename=row[1],
                     transcription=row[2],
-                    summary=row[3],
-                    embedding=np.frombuffer(row[4], dtype='<f4')
+                    who=row[3],
+                    what=row[4],
+                    when=row[5],
+                    where=row[6],
+                    context_vector_helper=row[7],
+                    who_embedding=np.frombuffer(row[8], dtype='<f4'),
+                    what_embedding=np.frombuffer(row[9], dtype='<f4'),
+                    when_embedding=np.frombuffer(row[10], dtype='<f4'),
+                    where_embedding=np.frombuffer(row[11], dtype='<f4'),
+                    context_embedding=np.frombuffer(row[12], dtype='<f4')
                 )
             return None
