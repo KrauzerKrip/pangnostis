@@ -8,9 +8,11 @@ dependencies = [
     "PyYAML",
     "google-genai>=1.62.0",
     "matplotlib>=3.10.8",
+    "mplcursors>=0.7",
     "numpy>=2.4.2",
     "pydantic",
     "python-dotenv>=1.2.1",
     "scikit-learn>=1.8.0",
     "sqlite-vec",
+    "tornado>=6.5.4",
 ]

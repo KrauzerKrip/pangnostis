@@ -1,9 +1,18 @@
 from pathlib import Path
+import sys
+
+import matplotlib
+# Use WebAgg to open the interactive plot in a browser - very reliable on NixOS/Linux
+try:
+    matplotlib.use("WebAgg")
+except Exception:
+    pass
 
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
+import mplcursors
 
 from repository import TranscriptionRepository
 
@@ -63,15 +72,6 @@ def main():
 
         # KMeans clustering
         kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
-        # labels = kmeans.fit_predict(
-        #     embeddings
-        # )  # Cluster on full embeddings or reduced? Usually full is better.
-        # centroids = kmeans.cluster_centers_
-
-        # Transform centroids for plotting if they were calculated on full embeddings
-        # Actually, let's cluster on reduced embeddings for visual consistency with the plot
-        # or just cluster on full and map centroids.
-        # For simplicity and visual "tightness", clustering on reduced embeddings works well for 2D plots.
         labels = kmeans.fit_predict(reduced_embeddings)
         centroids = kmeans.cluster_centers_
 
@@ -81,18 +81,43 @@ def main():
         colors = plt.colormaps["tab10"](np.linspace(0, 1, n_clusters))
 
         # Plot each transcription point
+        scatters = []
         for i in range(num_transcriptions):
-            plt.scatter(
+            t = transcriptions[i]
+            s = plt.scatter(
                 reduced_embeddings[i, 0],
                 reduced_embeddings[i, 1],
                 color=colors[labels[i]],
                 marker=markers[i % len(markers)],
-                label=filenames[i],
+                label=t.filename, # Only filename for the legend
                 s=150,
                 edgecolors="black",
                 linewidths=0.5,
                 alpha=0.85,
             )
+            scatters.append(s)
+            
+            # Attach metadata to a custom attribute for the cursor (NOT the label)
+            s.metadata = (
+                f"File: {t.filename}\n"
+                f"Cluster: {labels[i]}\n"
+                f"Who: {t.who}\n"
+                f"What: {t.what}\n"
+                f"Where: {t.where}"
+            )
+
+        # Add interactive tooltips
+        cursor = mplcursors.cursor(scatters, hover=False)
+        
+        @cursor.connect("add")
+        def on_add(sel):
+            # Pull the metadata we stored earlier
+            sel.annotation.set_text(sel.artist.metadata)
+            sel.annotation.get_bbox_patch().set(fc="white", alpha=0.9, boxstyle="round,pad=0.5")
+            # Prevent the tooltip from being clipped by the axis boundary
+            sel.annotation.set_clip_on(False)
+            # Ensure it's on top of everything
+            sel.annotation.set_zorder(100)
 
         # Plot centroids
         plt.scatter(
@@ -118,12 +143,16 @@ def main():
             bbox_to_anchor=(1.05, 1),
             loc="upper left",
             title="Files (Markers) & Clusters (Colors)",
-            fontsize=10,
+            fontsize=8
         )
 
         plt.grid(True, linestyle="--", alpha=0.6)
         plt.tight_layout()
         plt.savefig(output_path)
+        
+        print(f"Opening interactive browser plot for '{emb_type}'...")
+        plt.show()
+        
         plt.close()
         print(f"Plot saved to {output_path}")
 
