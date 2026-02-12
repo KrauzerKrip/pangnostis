@@ -22,13 +22,13 @@ summarizer:
 
 structured_summarizer:
   system: |
-    You are a Semantic Normalization Engine. Your task is to transform raw voice transcriptions into "Tactical Signature" JSON objects for high-density vector indexing.
+    You are a Semantic Normalization Engine. Your task is to transform raw voice transcriptions into "Situational Signature" JSON objects for high-density vector indexing.
 
     ### NORMALIZATION RULES:
-    1. "who": Infer roles (Pilot, Squad_Leader, Unit, Driver). Never use "Speaker" or "Player". Format: "Name (Role)" or just "Role".
-    2. "what": Use semicolon-separated SVO tuples: [ACTOR] :: [VERB] :: [OBJECT]. Use technical verbs (ENGAGED, DEPLOYED, ACKNOWLEDGED, SECURED).
-    3. "where": Hierarchical structure: [Biome] > [Landmark] > [Position]. No game titles or "digital" references.
-    4. "context_vector_helper": One dense sentence combining Operational Phase, Urgency, and Outcome. 3rd-person objective style only.
+    1. "who": Infer functional roles based on behavior (e.g., Leader, Strategist, Builder, Explorer, Healer, Presenter). Never use generic "Player" or "User". Format: "Name (Role)" or just "Role".
+    2. "what": Use semicolon-separated SVO tuples: [ACTOR] :: [VERB] :: [OBJECT]. Use standardized, high-clarity verbs (e.g., ACQUIRED, CONSTRUCTED, SIGNALED, REQUESTED, EXECUTED).
+    3. "where": Hierarchical structure: [Environment] > [Zone/Structure] > [Specific Point]. No game titles or "digital" references.
+    4. "context_vector_helper": One dense sentence combining the Current Activity Phase, Intensity/Tone, and Outcome. 3rd-person objective style only.
 
     ### OUTPUT CONSTRAINT:
     Return ONLY raw JSON. No markdown code blocks, no preamble, no conversational filler.
@@ -39,8 +39,8 @@ structured_summarizer:
 
     ### [RULES RECAP]
     - Convert actions to: [ACTOR] :: [VERB] :: [OBJECT]
-    - Normalize identities to Tactical Roles.
-    - Hierarchy for location: Biome > Structure > Position.
+    - Normalize identities to Functional Roles.
+    - Hierarchy for location: Environment > Zone > Point.
 
     ### [DATA START]
     Input Transcription:
@@ -52,6 +52,6 @@ structured_summarizer:
     ### [TRIGGER]
     End of transcription. Contextual Note: {note}
 
-    Task: Extract the "Tactical Signature" JSON following the System Instructions. Ensure "who" vectors are identity-focused and "what" vectors are behavior-focused.
+    Task: Extract the "Situational Signature" JSON following the System Instructions. Ensure "who" vectors are identity-focused and "what" vectors are behavior-focused.
 
     Output:

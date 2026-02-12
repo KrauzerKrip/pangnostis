@@ -13,6 +13,7 @@ import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 import mplcursors
+import json
 
 from repository import TranscriptionRepository
 
@@ -156,7 +157,30 @@ def main():
         plt.close()
         print(f"Plot saved to {output_path}")
 
-    print(f"\nVisualization complete. All plots saved to: {output_dir}")
+        # Export cluster data to JSON
+        cluster_data = {}
+        for i in range(n_clusters):
+            cluster_data[f"cluster_{i}"] = []
+
+        for i in range(num_transcriptions):
+            t = transcriptions[i]
+            cluster_id = int(labels[i])
+            cluster_data[f"cluster_{cluster_id}"].append({
+                "filename": t.filename,
+                "cluster_id": cluster_id,
+                "who": t.who,
+                "what": t.what,
+                "where": t.where,
+                "context": t.context_vector_helper,
+                "transcription": t.transcription
+            })
+
+        json_output_path = output_dir / f"clustering_{emb_type}.json"
+        with open(json_output_path, "w", encoding="utf-8") as f:
+            json.dump(cluster_data, f, indent=4, ensure_ascii=False)
+        print(f"Cluster data saved to {json_output_path}")
+
+    print(f"\nVisualization complete. All plots and data saved to: {output_dir}")
 
 
 if __name__ == "__main__":

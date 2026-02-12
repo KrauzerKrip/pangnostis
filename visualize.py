@@ -1,7 +1,9 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.manifold import TSNE
-from pathlib import Path
+
 from repository import TranscriptionRepository
 
 
@@ -13,7 +15,7 @@ def get_next_visual_dir(base_dir: Path) -> Path:
         next_val = 1
     else:
         next_val = max(int(d.name) for d in existing_dirs) + 1
-    
+
     new_dir = base_dir / str(next_val)
     new_dir.mkdir(parents=True, exist_ok=True)
     return new_dir
@@ -36,9 +38,9 @@ def plot_embeddings(embeddings, filenames, title, output_path):
     plt.figure(figsize=(12, 8))
     # Use nipy_spectral for better color variety when dealing with many files
     colors = plt.colormaps["nipy_spectral"](np.linspace(0, 1, len(filenames)))
-    
+
     # List of marker styles to cycle through
-    markers = ['o', 's', '^', 'v', '<', '>', 'D', 'p', '*', 'h', 'X', '8']
+    markers = ["o", "s", "^", "v", "<", ">", "D", "p", "*", "h", "X", "8"]
 
     for i, filename in enumerate(filenames):
         plt.scatter(
@@ -48,7 +50,7 @@ def plot_embeddings(embeddings, filenames, title, output_path):
             marker=markers[i % len(markers)],
             label=filename,
             s=100,
-            alpha=0.8
+            alpha=0.8,
         )
 
     plt.title(title)
@@ -79,7 +81,7 @@ def main():
         "who": "who_embedding",
         "what": "what_embedding",
         "where": "where_embedding",
-        "context": "context_embedding"
+        "context": "context_embedding",
     }
 
     # Setup output directory
@@ -92,10 +94,10 @@ def main():
     for emb_type, attr_name in embedding_map.items():
         print(f"Processing '{emb_type}' embeddings...")
         embeddings = np.array([getattr(t, attr_name) for t in transcriptions])
-        
+
         output_path = output_dir / f"embedding_{emb_type}.png"
         title = f"t-SNE Visualization: {emb_type.capitalize()} Embeddings"
-        
+
         plot_embeddings(embeddings, filenames, title, output_path)
 
     print("\nVisualization complete for all embedding types.")

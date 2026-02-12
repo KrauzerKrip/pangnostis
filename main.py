@@ -40,7 +40,7 @@ def extract_datetime(filename: str) -> datetime:
     return None
 
 
-def get_transcription_text(json_path: Path, include_time: bool = False) -> str:
+def get_transcription_text(json_path: Path, include_time: bool = False, time_offset: float = 0.0) -> str:
     """Extract and concatenate text from the transcription JSON file."""
     try:
         with open(json_path, "r", encoding="utf-8") as f:
@@ -50,10 +50,16 @@ def get_transcription_text(json_path: Path, include_time: bool = False) -> str:
         if include_time:
             dt = extract_datetime(json_path.name)
             if dt:
-                prefix = f"[Recorded at {dt.strftime('%Y-%m-%d %H:%M:%S')}] "
+                prefix = f"[Recorded at {dt.strftime('%Y-%m-%d %H:%M:%S')}]\n"
 
-        texts = [entry["text"] for entry in data.get("transcript", [])]
-        return prefix + " ".join(texts)
+        lines = []
+        for entry in data.get("transcript", []):
+            start = entry.get("start", 0.0) + time_offset
+            end = entry.get("end", 0.0) + time_offset
+            text = entry.get("text", "").strip()
+            lines.append(f"[{start:.2f}s-{end:.2f}s] {text}")
+            
+        return prefix + "\n".join(lines)
     except Exception as e:
         print(f"Error reading {json_path}: {e}")
         return ""
@@ -157,14 +163,22 @@ def main():
 
         # Combine transcriptions
         transcription_parts = []
+        base_dt = extract_datetime(task_files[0].name) if task_files else None
+
         for f in task_files:
-            part = get_transcription_text(f, include_time=args.merge)
+            offset = 0.0
+            if base_dt:
+                current_dt = extract_datetime(f.name)
+                if current_dt:
+                    offset = (current_dt - base_dt).total_seconds()
+
+            part = get_transcription_text(f, include_time=args.merge, time_offset=offset)
             if part:
                 transcription_parts.append(part)
 
-        transcription_text = "\n\n".join(transcription_parts)
+        joined_transcription_text = "\n\n".join(transcription_parts)
 
-        if not transcription_text:
+        if not joined_transcription_text:
             print(f"No transcription text found for {display_name}")
             continue
 
@@ -174,7 +188,7 @@ def main():
             prompt_user = summarizer_prompt.user.format(
                 filename=task_filename,
                 word_count=150,
-                text=transcription_text,
+                text=joined_transcription_text,
                 note="It's a transcription of a video replay where me and my friend play a video game. The filename has the name of the game.",
             )
 
@@ -222,7 +236,7 @@ def main():
 
             # Create Transcription object
             transcription = Transcription(
-                transcription=transcription_text,
+                transcription=joined_transcription_text,
                 who=structured_data.get("who", ""),
                 what=structured_data.get("what", ""),
                 where=structured_data.get("where", ""),
