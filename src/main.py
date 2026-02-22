@@ -16,11 +16,26 @@ from prompts import load_prompts
 from repository import TranscriptionRepository
 
 
+from typing import List, Optional
+
+class Actor(BaseModel):
+    name: str
+    state_in_clip: str
+    notable: Optional[str] = None
+
 class StructuredSummary(BaseModel):
-    who: str
-    what: str
-    where: str
-    context_vector_helper: str
+    session_id: str
+    domain_hint: Optional[str] = None
+    actors: List[Actor]
+    threat_level: str
+    group_dynamic: str
+    activity_type: str
+    surprise_factor: str
+    abstract_summary: str
+    concrete_summary: str
+    personal_moments: List[str]
+    transcription_confidence: str
+    flags: List[str]
 
 
 def extract_datetime(filename: str) -> datetime:
@@ -187,7 +202,8 @@ def main():
             # Generate Summary using the specified prompt
             prompt_user = summarizer_prompt.user.format(
                 filename=task_filename,
-                word_count=150,
+                known_participants="Unknown",  # Placeholder as we don't have this info yet
+                genre_hint="Video Game",       # Generic hint based on context
                 text=joined_transcription_text,
                 note="It's a transcription of a video replay where me and my friend play a video game. The filename has the name of the game.",
             )
@@ -215,37 +231,28 @@ def main():
                 print(f"Raw response: {response.text}")
                 continue
 
-            # Fields: who, what, where, context_vector_helper
-            fields = ["who", "what", "where", "context_vector_helper"]
-            embeddings = {}
+            # Fields: abstract_summary for embedding
+            text_to_embed = structured_data.get("abstract_summary", "")
 
-            print(f"Generating embeddings for {display_name}...")
-            for field in fields:
-                field_content = structured_data.get(field, "")
-                if not field_content:
-                    print(f"Warning: Field '{field}' is empty for {display_name}")
+            print(f"Generating embedding for {display_name}...")
+            if not text_to_embed:
+                print(f"Warning: 'abstract_summary' is empty for {display_name}")
 
-                embed_response = client.models.embed_content(
-                    model="gemini-embedding-001",
-                    contents=field_content or "None",
-                    config=types.EmbedContentConfig(task_type="CLUSTERING"),
-                )
-                embeddings[field] = np.array(
-                    embed_response.embeddings[0].values, dtype=np.float32
-                )
+            embed_response = client.models.embed_content(
+                model="gemini-embedding-001",
+                contents=text_to_embed or "None",
+                config=types.EmbedContentConfig(task_type="CLUSTERING"),
+            )
+            embedding = np.array(
+                embed_response.embeddings[0].values, dtype=np.float32
+            )
 
             # Create Transcription object
             transcription = Transcription(
                 transcription=joined_transcription_text,
-                who=structured_data.get("who", ""),
-                what=structured_data.get("what", ""),
-                where=structured_data.get("where", ""),
-                context_vector_helper=structured_data.get("context_vector_helper", ""),
+                structured_data=json.dumps(structured_data, ensure_ascii=False),
                 filename=task_filename,
-                who_embedding=embeddings["who"],
-                what_embedding=embeddings["what"],
-                where_embedding=embeddings["where"],
-                context_embedding=embeddings["context_vector_helper"],
+                embedding=embedding,
             )
 
             # Save to database
